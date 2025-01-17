@@ -3,14 +3,14 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace SMART.Domain
 {
-    public class DomainDbContext : DbContext
+    public class DomainDbContext : DbContext, IDomainDbContext
     {
         public DbSet<EquipmentContract> EquipmentContracts { get; set; }
         public DbSet<ProcessEquipment> ProcessEquipments { get; set; }
         public DbSet<ProductionFacility> ProductionFacilities { get; set; }
 
-        public DomainDbContext(DbContextOptions<DomainDbContext> options): base(options)
-        { 
+        public DomainDbContext(DbContextOptions<DomainDbContext> options) : base(options)
+        {
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
