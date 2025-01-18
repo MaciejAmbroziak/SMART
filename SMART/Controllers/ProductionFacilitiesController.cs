@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SMART.Domain;
 
 namespace SMART.Controllers
@@ -111,19 +112,21 @@ namespace SMART.Controllers
         private bool CodeExists(string code, int id)
         {
             var notTheSameCode = true;
-            var similarCode = _context.ProductionFacilities.Where(e => e.Code.Contains(code));
-            similarCode = similarCode.Except(similarCode.Where(a=>a.Id == id));   
-            if (similarCode.Any())
+            var similarCodeQuerry = _context.ProductionFacilities.Where(e => e.Code.Contains(code));
+            similarCodeQuerry = similarCodeQuerry.Except(similarCodeQuerry.Where(a=>a.Id == id));   
+            if (similarCodeQuerry.Any())
             {
-                foreach (var similar in similarCode)
+                foreach (var similarProductionFacility in similarCodeQuerry)    
                 {
-                    var stringsArray = similar.Code.Split(code);
+                    var similarProductionFacilityCode = similarProductionFacility.Code;
+                    similarProductionFacilityCode.Replace(code, "");
+                    var stringsArray = similarProductionFacilityCode.Split(' ');
                     if (stringsArray.Any())
                     {
                         foreach (var s in stringsArray)
                         {
                             s.Trim(' ');
-                            notTheSameCode = notTheSameCode & !(s.Length > 0);
+                            notTheSameCode = notTheSameCode & !(s.IsNullOrEmpty());
                         }
                     }
                 }

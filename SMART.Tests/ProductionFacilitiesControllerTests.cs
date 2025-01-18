@@ -54,6 +54,26 @@ namespace SMART.Tests
                     Code = "Lsingdlwnbgkj-12",
                     Occupied = false
                 });
+            _dbContext.ProductionFacilities.Add(
+                new ProductionFacility()
+                {
+                    Id = 5,
+                    Name = "Room 5",
+                    StandardArea = 200,
+                    Code = "ABC  123456",
+                    Occupied = false
+                });
+            _dbContext.ProductionFacilities.Add(
+                new ProductionFacility()
+                {
+                    Id = 6,
+                    Name = "Room 6",
+                    StandardArea = 201,
+                    Code = "ABC 123456",
+                    Occupied = false
+                });
+
+
             _dbContext.SaveChanges();
 
             _productionFacilitiesController = new ProductionFacilitiesController(_dbContext);
@@ -65,7 +85,7 @@ namespace SMART.Tests
             //Act
             var result = (await _productionFacilitiesController.GetProductionFacilities()).Value.Count();
             //Assert
-            Assert.Equal(4, result);
+            Assert.Equal(6, result);
         }
         [Fact]
         public async Task GetProductionFacilitiesTask_DoesNotReturnNull()
@@ -161,6 +181,8 @@ namespace SMART.Tests
         [InlineData(" BBBBBBB12")]
         [InlineData(" 123 4567890")]
         [InlineData(" 123 456 7890 ")]
+        [InlineData(" 123 4567890 KK")]
+        [InlineData(" 123 456 7890 KK")]
         public async Task PutProductionFacility_ReturnsBadRequestForExistingCode(string code)
         {
             var productionFacility = new ProductionFacility()
