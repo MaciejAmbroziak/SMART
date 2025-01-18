@@ -12,7 +12,6 @@ namespace SMART.Tests
 
         public ProductionFacilitiesControllerTests()
         {
-            // create DomainDbContextMock
             var options = new DbContextOptionsBuilder<DomainDbContext>()
                 .UseInMemoryDatabase($"InMemoryDb {Guid.NewGuid()}")
                 .Options;
@@ -33,7 +32,7 @@ namespace SMART.Tests
                     Id = 2,
                     Name = "Room 2",
                     StandardArea = 12.31,
-                    Code = "BBBBBBB12",
+                    Code = "BBBBBBB12 SS",
                     Occupied = false
                 });
             _dbContext.ProductionFacilities.Add(
@@ -136,7 +135,7 @@ namespace SMART.Tests
 
         [Theory]
         [InlineData(1, "Room 1", 10.5, "AAABBBCCC1234567890", true)]
-        [InlineData(2, "Room 2", 12.31, "BBBBBBB12", false)]
+        [InlineData(2, "Room 2", 12.31, "BBBBBBB12 SS", false)]
         [InlineData(3, "Room 3", 14.2, "1234567890", true)]
         public async Task GetProductionFacilityTaskActionResult_DoesReturnProperValues(int id, string name, double area, string code, bool occupied)
         {
@@ -175,6 +174,7 @@ namespace SMART.Tests
 
         [Theory]
         [InlineData("BBBBBBB12")]
+        [InlineData("BBBBBBB12KK")]
         [InlineData("1234567890")]
         [InlineData("BBBB BBB12")]
         [InlineData("1234567890 ")]
@@ -198,6 +198,28 @@ namespace SMART.Tests
             Assert.IsType<BadRequestResult>(result);
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public async Task PutProductionFacility_ChangesDbCorrectly(int id)
+        {
+            //Arange
+            var productionFacility = _dbContext.ProductionFacilities.Where(a => a.Id == id).First();
+            productionFacility.Name = "Abrakadabra";
+            productionFacility.Code = "Lorem ipsum";
+            productionFacility.Occupied = true;
+            productionFacility.StandardArea = 1.2;
 
+            //Act
+            await _productionFacilitiesController.PutProductionFacility(productionFacility.Id, productionFacility);
+            var result = _dbContext.ProductionFacilities.Where(_a => _a.Id == id).First();
+
+            //Assert
+            Assert.Equal(productionFacility, result);
+        }
+
+        //TODO Despite many attempts I do not know how to simulate throwing DbUpdateConcurrencyException
     }
 }
