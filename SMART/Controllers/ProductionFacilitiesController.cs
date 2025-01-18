@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using SMART.Domain;
 
@@ -50,7 +51,10 @@ namespace SMART.Controllers
             {
                 return BadRequest();
             }
-
+            if (!CodeExists(productionFacility.Code, id))
+            {
+                return BadRequest();
+            }
             _context.Entry(productionFacility).State = EntityState.Modified;
 
             try
@@ -102,6 +106,29 @@ namespace SMART.Controllers
         private bool ProductionFacilityExists(int id)
         {
             return _context.ProductionFacilities.Any(e => e.Id == id);
+        }
+
+        private bool CodeExists(string code, int id)
+        {
+            var notTheSameCode = true;
+            var similarCode = _context.ProductionFacilities.Where(e => e.Code.Contains(code));
+            similarCode = similarCode.Except(similarCode.Where(a=>a.Id == id));   
+            if (similarCode.Any())
+            {
+                foreach (var similar in similarCode)
+                {
+                    var stringsArray = similar.Code.Split(code);
+                    if (stringsArray.Any())
+                    {
+                        foreach (var s in stringsArray)
+                        {
+                            s.Trim(' ');
+                            notTheSameCode = notTheSameCode & !(s.Length > 0);
+                        }
+                    }
+                }
+            }
+            return !notTheSameCode;
         }
     }
 }

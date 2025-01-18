@@ -1,10 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.InMemory;
-using Moq;
-using NuGet.Configuration;
 using SMART.Controllers;
 using SMART.Domain;
-using Xunit;
 
 namespace SMART.Tests
 {
@@ -17,7 +14,7 @@ namespace SMART.Tests
         {
             // create DomainDbContextMock
             var options = new DbContextOptionsBuilder<DomainDbContext>()
-                .UseInMemoryDatabase("InMemoryDb")
+                .UseInMemoryDatabase($"InMemoryDb {Guid.NewGuid()}")
                 .Options;
             _dbContext = new DomainDbContext(options);
 
@@ -63,13 +60,122 @@ namespace SMART.Tests
         }
 
         [Fact]
-        public async void GetProductionFacilities_ReturnsTheNumberOfFacilities()
+        public async Task GetProductionFacilities_ReturnsTheNumberOfFacilities()
         {
-            //Arrange? or //Act?
+            //Act
             var result = (await _productionFacilitiesController.GetProductionFacilities()).Value.Count();
-            //Assert?
+            //Assert
             Assert.Equal(4, result);
         }
-        //TODO verify if the test my look like that
+        [Fact]
+        public async Task GetProductionFacilitiesTask_DoesNotReturnNull()
+        {
+            //Act
+            var result = await _productionFacilitiesController.GetProductionFacilities();
+            //Assert
+            Assert.NotNull(result);
+        }
+        [Fact]
+        public async Task GetProductionFacilitiesTaskActionResult_DoesNotReturnNull()
+        {
+            //Act
+            var result = (await _productionFacilitiesController.GetProductionFacilities()).Value;
+            //Assert
+            Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task GetProductionFacilities_ReturnsProperResult()
+        {
+            //Act
+            var result = (await _productionFacilitiesController.GetProductionFacilities()).Value.First();
+            
+            //Assert
+            Assert.Equal(1, result.Id);
+            Assert.Equal("Room 1", result.Name);
+            Assert.Equal(10.5, result.StandardArea, 0.001);
+            Assert.Equal("AAABBBCCC1234567890", result.Code);
+            Assert.Equal(true, result.Occupied);
+        }
+
+        [Fact]
+        public async Task GetProductionFacilityTask_DoesNotReturnNull()
+        {
+            var result = await _productionFacilitiesController.GetProductionFacility(1);
+            
+            Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task GetProductionFacilityTaskActionResult_DoesNotReturnNull()
+        {
+            var result = (await _productionFacilitiesController.GetProductionFacility(1)).Value;
+        
+            Assert.NotNull(result);
+        }
+
+        [Theory]
+        [InlineData(1, "Room 1", 10.5, "AAABBBCCC1234567890", true)]
+        [InlineData(2, "Room 2", 12.31, "BBBBBBB12", false)]
+        [InlineData(3, "Room 3", 14.2, "1234567890", true)]
+        public async Task GetProductionFacilityTaskActionResult_DoesReturnProperValues(int id, string name, double area, string code, bool occupied)
+        {
+            var result = (await _productionFacilitiesController.GetProductionFacility(id)).Value;
+
+            Assert.Equal(id, result.Id);
+            Assert.Equal(name, result.Name);
+            Assert.Equal(area, result.StandardArea, 0.001);
+            Assert.Equal(code, result.Code); 
+            Assert.Equal(occupied, result.Occupied);
+        }
+
+        [Fact]
+        public async Task GetProductionFacility_IfDataNotExist_ReturnsNotFound()
+        {
+            var result = (await _productionFacilitiesController.GetProductionFacility(99)).Result;
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task PutProductionFacility_ReturnsBadRequestForDifferentId()
+        {
+            var productionFacility = new ProductionFacility()
+            {
+                Id = 2,
+                Name = "Room 1",
+                StandardArea = 10.5,
+                Code = "AAABBBCCC1234567890",
+                Occupied = true,
+            };
+            var result = (await _productionFacilitiesController.PutProductionFacility(1, productionFacility));
+
+            Assert.IsType<BadRequestResult>(result);
+        }
+
+        [Theory]
+        [InlineData("BBBBBBB12")]
+        [InlineData("1234567890")]
+        [InlineData("BBBB BBB12")]
+        [InlineData("1234567890 ")]
+        [InlineData(" BBBBBBB12")]
+        [InlineData(" 123 4567890")]
+        [InlineData(" 123 456 7890 ")]
+        public async Task PutProductionFacility_ReturnsBadRequestForExistingCode(string code)
+        {
+            var productionFacility = new ProductionFacility()
+            {
+                Id = 1,
+                Name = "Room 1",
+                StandardArea = 10.5,
+                Code = code,
+                Occupied = true,
+            };
+            var result = (await _productionFacilitiesController.PutProductionFacility(1, productionFacility));
+
+            Assert.IsType<BadRequestResult>(result);
+        }
+
+
     }
 }
