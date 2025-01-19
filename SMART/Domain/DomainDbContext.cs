@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace SMART.Domain
 {
-    public class DomainDbContext : DbContext, IDomainDbContext
+    public class DomainDbContext : DbContext
     {
         public DbSet<EquipmentContract> EquipmentContracts { get; set; }
         public DbSet<ProcessEquipment> ProcessEquipments { get; set; }
@@ -22,6 +22,5 @@ namespace SMART.Domain
                 .HasIndex(a => a.Code)
                 .IsUnique();
         }
-
     }
 }
