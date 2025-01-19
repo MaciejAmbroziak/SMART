@@ -48,14 +48,11 @@ namespace SMART.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProductionFacility(int id, ProductionFacility productionFacility)
         {
-            if (id != productionFacility.Id)
+            if ((id != productionFacility.Id) | CodeExists(productionFacility))
             {
                 return BadRequest();
             }
-            if (CodeExists(productionFacility))
-            {
-                return BadRequest();
-            }
+
             _context.Entry(productionFacility).State = EntityState.Modified;
 
             try
@@ -120,7 +117,7 @@ namespace SMART.Controllers
                 {
                     var codeToInspect = similarProductionFacility.Code;
                     codeToInspect = codeToInspect.Trim();
-                    if (codeToInspect.StartsWith(code) & codeToInspect.EndsWith(code) & codeToInspect.Length == code.Length)
+                    if (codeToInspect.StartsWith(code) & codeToInspect.Length == code.Length)
                     {
                         return true;
                     }

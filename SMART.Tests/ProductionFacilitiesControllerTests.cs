@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using SMART.Controllers;
 using SMART.Domain;
 
@@ -258,6 +258,56 @@ namespace SMART.Tests
             productionFacility.Name = "Lorem ipsum";
             var result = (await putProductionFacilitiesController.PutProductionFacility(productionFacility.Id, productionFacility));
             Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task PostProductionFacility_ReturnsCreatedAtAction_IfCreated()
+        {
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext dbContext = new DomainDbContext(options);
+            dbContext.ProductionFacilities.AddRange(_facilityList);
+            dbContext.SaveChanges();
+            var productionFacilitiesController = new ProductionFacilitiesController(dbContext);
+
+            ProductionFacility productionFacility = new ProductionFacility()
+            {
+                Name = "Room 1",
+                StandardArea = 10.5,
+                Code = "AAABBBCCC190",
+                Occupied = true
+            };
+            var result = (await productionFacilitiesController.PostProductionFacility(productionFacility)).Result;
+            
+            Assert.IsType<CreatedAtActionResult>(result);
+        }
+
+        [Fact]
+        public async Task DeleteProductionFacility_ReturnsNotFoud_IfEntityDoeasNotExists()
+        {
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext dbContext = new DomainDbContext(options);
+            dbContext.ProductionFacilities.AddRange(_facilityList);
+            dbContext.SaveChanges();
+            var productionFacilitiesController = new ProductionFacilitiesController(dbContext);
+
+            var result = (await productionFacilitiesController.DeleteProductionFacility(99));
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task DeleteProductionFacility_ReturnsNoContent_IfEntitytExistsAndIsDeleted()
+        {
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext dbContext = new DomainDbContext(options);
+            dbContext.ProductionFacilities.AddRange(_facilityList);
+            dbContext.SaveChanges();
+            var productionFacilitiesController = new ProductionFacilitiesController(dbContext);
+
+            var entity = dbContext.ProductionFacilities.First();
+            var result = await productionFacilitiesController.DeleteProductionFacility(entity.Id);
+
+            Assert.IsType<NoContentResult>(result);
         }
     }
 }
