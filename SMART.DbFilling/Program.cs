@@ -3,11 +3,12 @@ using SMART.Domain;
 using System.Configuration;
 List<ProductionFacility> productionFacilityList = new List<ProductionFacility>();
 List<ProcessEquipment> processEquipmentList = new List<ProcessEquipment>();
+List<EquipmentContract> equipmentContractsList = new List<EquipmentContract>();
 Random random = new Random();
 var options = new DbContextOptionsBuilder<DomainDbContext>().UseSqlServer("Server=.\\SQLEXPRESS;Database=SMART;Trusted_Connection=True;TrustServerCertificate=true;").Options;
 using (DomainDbContext _context = new DomainDbContext(options))
 {
-    for (int i = 0; i < 2000; i++)
+    for (int i = 0; i < 200; i++)
     {
         productionFacilityList.Add(new ProductionFacility()
         {
@@ -26,7 +27,29 @@ using (DomainDbContext _context = new DomainDbContext(options))
             Name = $"Process equipment {i}"
         });
     }
-    _context.ProductionFacilities.AddRange(productionFacilityList);
-    _context.ProcessEquipments.AddRange(processEquipmentList);
+    
+    await _context.ProductionFacilities.AddRangeAsync(productionFacilityList);
+    await _context.ProcessEquipments.AddRangeAsync(processEquipmentList);
+    await _context.SaveChangesAsync();
+  
+    List<ProductionFacility> listOfProductionFacilities = await _context.ProductionFacilities.Where(a => a.Occupied).ToListAsync();
+    int listOfProductionFacilitiesInContracts = listOfProductionFacilities.Count();
+    List<ProcessEquipment> listOfProcessEquipment = await _context.ProcessEquipments.ToListAsync();
+    for (int i = 0;i < listOfProductionFacilitiesInContracts - 1; i++)
+    {
+        List<ProcessEquipment> listOfProcessEquipmentInContract = new List<ProcessEquipment>();
+        for (int j = 0; j < random.Next(1,6); j++)
+        {
+            int randomEuipmentId = random.Next(1, listOfProcessEquipment.Count);
+            listOfProcessEquipmentInContract.Add(listOfProcessEquipment.Skip(randomEuipmentId).Take(1).First());
+        }
+        equipmentContractsList.Add(new EquipmentContract()
+        {
+            ProductionFacility = listOfProductionFacilities[i],
+            ProcessEquipment = listOfProcessEquipmentInContract
+        });
+        
+    }
+    _context.EquipmentContracts.AddRange(equipmentContractsList);
     _context.SaveChanges();
 }
