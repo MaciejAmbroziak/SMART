@@ -52,7 +52,7 @@ namespace SMART.Controllers
             {
                 return BadRequest();
             }
-            if (!CodeExists(productionFacility.Code, id))
+            if (CodeExists(productionFacility))
             {
                 return BadRequest();
             }
@@ -109,29 +109,24 @@ namespace SMART.Controllers
             return _context.ProductionFacilities.Any(e => e.Id == id);
         }
 
-        private bool CodeExists(string code, int id)
+        private bool CodeExists(ProductionFacility productionFacility)
         {
-            var notTheSameCode = true;
+            var code = productionFacility.Code;
             var similarCodeQuerry = _context.ProductionFacilities.Where(e => e.Code.Contains(code));
-            similarCodeQuerry = similarCodeQuerry.Except(similarCodeQuerry.Where(a=>a.Id == id));   
-            if (similarCodeQuerry.Any())
+            var similarCodeQuerryWituhotThis = similarCodeQuerry.Except(similarCodeQuerry.Where(a=>a.Id == productionFacility.Id));   
+            if (similarCodeQuerryWituhotThis.Count() > 0)
             {
-                foreach (var similarProductionFacility in similarCodeQuerry)    
+                foreach (var similarProductionFacility in similarCodeQuerryWituhotThis)    
                 {
-                    var similarProductionFacilityCode = similarProductionFacility.Code;
-                    similarProductionFacilityCode.Replace(code, "");
-                    var stringsArray = similarProductionFacilityCode.Split(' ');
-                    if (stringsArray.Any())
+                    var codeToInspect = similarProductionFacility.Code;
+                    codeToInspect = codeToInspect.Trim();
+                    if (codeToInspect.StartsWith(code) & codeToInspect.EndsWith(code) & codeToInspect.Length == code.Length)
                     {
-                        foreach (var s in stringsArray)
-                        {
-                            s.Trim(' ');
-                            notTheSameCode = notTheSameCode & !(s.IsNullOrEmpty());
-                        }
+                        return true;
                     }
                 }
             }
-            return !notTheSameCode;
+            return false;
         }
     }
 }

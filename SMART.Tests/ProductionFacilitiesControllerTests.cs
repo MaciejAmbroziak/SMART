@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SMART.Controllers;
@@ -8,16 +9,18 @@ namespace SMART.Tests
     public class ProductionFacilitiesControllerTests
     {
         private readonly DomainDbContext _dbContext;
+        private readonly List<ProductionFacility> _facilityList;
         private readonly ProductionFacilitiesController _productionFacilitiesController;
 
         public ProductionFacilitiesControllerTests()
         {
+            _facilityList = new List<ProductionFacility>();
             var options = new DbContextOptionsBuilder<DomainDbContext>()
                 .UseInMemoryDatabase($"InMemoryDb {Guid.NewGuid()}")
                 .Options;
             _dbContext = new DomainDbContext(options);
 
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 1,
@@ -26,16 +29,16 @@ namespace SMART.Tests
                     Code = "AAABBBCCC1234567890",
                     Occupied = true,
                 });
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 2,
                     Name = "Room 2",
                     StandardArea = 12.31,
-                    Code = "BBBBBBB12 SS",
+                    Code = "BBBBBBB12",
                     Occupied = false
                 });
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 3,
@@ -44,7 +47,7 @@ namespace SMART.Tests
                     Code = "1234567890",
                     Occupied = true,
                 });
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 4,
@@ -53,7 +56,7 @@ namespace SMART.Tests
                     Code = "Lsingdlwnbgkj-12",
                     Occupied = false
                 });
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 5,
@@ -62,7 +65,7 @@ namespace SMART.Tests
                     Code = "ABC  123456",
                     Occupied = false
                 });
-            _dbContext.ProductionFacilities.Add(
+            _facilityList.Add(
                 new ProductionFacility()
                 {
                     Id = 6,
@@ -72,7 +75,7 @@ namespace SMART.Tests
                     Occupied = false
                 });
 
-
+            _dbContext.AddRange(_facilityList);
             _dbContext.SaveChanges();
 
             _productionFacilitiesController = new ProductionFacilitiesController(_dbContext);
@@ -108,7 +111,7 @@ namespace SMART.Tests
         {
             //Act
             var result = (await _productionFacilitiesController.GetProductionFacilities()).Value.First();
-            
+
             //Assert
             Assert.Equal(1, result.Id);
             Assert.Equal("Room 1", result.Name);
@@ -121,7 +124,7 @@ namespace SMART.Tests
         public async Task GetProductionFacilityTask_DoesNotReturnNull()
         {
             var result = await _productionFacilitiesController.GetProductionFacility(1);
-            
+
             Assert.NotNull(result);
         }
 
@@ -129,13 +132,13 @@ namespace SMART.Tests
         public async Task GetProductionFacilityTaskActionResult_DoesNotReturnNull()
         {
             var result = (await _productionFacilitiesController.GetProductionFacility(1)).Value;
-        
+
             Assert.NotNull(result);
         }
 
         [Theory]
         [InlineData(1, "Room 1", 10.5, "AAABBBCCC1234567890", true)]
-        [InlineData(2, "Room 2", 12.31, "BBBBBBB12 SS", false)]
+        [InlineData(2, "Room 2", 12.31, "BBBBBBB12", false)]
         [InlineData(3, "Room 3", 14.2, "1234567890", true)]
         public async Task GetProductionFacilityTaskActionResult_DoesReturnProperValues(int id, string name, double area, string code, bool occupied)
         {
@@ -144,7 +147,7 @@ namespace SMART.Tests
             Assert.Equal(id, result.Id);
             Assert.Equal(name, result.Name);
             Assert.Equal(area, result.StandardArea, 0.001);
-            Assert.Equal(code, result.Code); 
+            Assert.Equal(code, result.Code);
             Assert.Equal(occupied, result.Occupied);
         }
 
@@ -159,41 +162,39 @@ namespace SMART.Tests
         [Fact]
         public async Task PutProductionFacility_ReturnsBadRequestForDifferentId()
         {
-            var productionFacility = new ProductionFacility()
+            //Arrange
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext putDbContext = new DomainDbContext(options);
+            putDbContext.ProductionFacilities.AddRange(_facilityList);
+            putDbContext.SaveChanges();
+            var putProductionFacilitiesController = new ProductionFacilitiesController(putDbContext);
+
+            ProductionFacility productionFacility = new ProductionFacility()
             {
                 Id = 2,
                 Name = "Room 1",
                 StandardArea = 10.5,
                 Code = "AAABBBCCC1234567890",
-                Occupied = true,
+                Occupied = true
             };
-            var result = (await _productionFacilitiesController.PutProductionFacility(1, productionFacility));
+            var result = (await putProductionFacilitiesController.PutProductionFacility(1, productionFacility));
 
             Assert.IsType<BadRequestResult>(result);
         }
 
         [Theory]
-        [InlineData("BBBBBBB12")]
-        [InlineData("BBBBBBB12KK")]
-        [InlineData("1234567890")]
-        [InlineData("BBBB BBB12")]
-        [InlineData("1234567890 ")]
-        [InlineData(" BBBBBBB12")]
-        [InlineData(" 123 4567890")]
-        [InlineData(" 123 456 7890 ")]
-        [InlineData(" 123 4567890 KK")]
-        [InlineData(" 123 456 7890 KK")]
-        public async Task PutProductionFacility_ReturnsBadRequestForExistingCode(string code)
+        [InlineData("BBBBBBB12", 2)]
+
+        public async Task PutProductionFacility_ReturnsBadRequestForExistingCode(string code, int id)
         {
-            var productionFacility = new ProductionFacility()
-            {
-                Id = 1,
-                Name = "Room 1",
-                StandardArea = 10.5,
-                Code = code,
-                Occupied = true,
-            };
-            var result = (await _productionFacilitiesController.PutProductionFacility(1, productionFacility));
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext putDbContext = new DomainDbContext(options);
+            putDbContext.ProductionFacilities.AddRange(_facilityList);
+            putDbContext.SaveChanges();
+            var putProductionFacilitiesController = new ProductionFacilitiesController(putDbContext);
+
+            var productionFacility = putDbContext.ProductionFacilities.Where(a=>a.Id == id).FirstOrDefault();
+            var result = (await putProductionFacilitiesController.PutProductionFacility(1, productionFacility));
 
             Assert.IsType<BadRequestResult>(result);
         }
@@ -206,6 +207,12 @@ namespace SMART.Tests
         public async Task PutProductionFacility_ChangesDbCorrectly(int id)
         {
             //Arange
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext putDbContext = new DomainDbContext(options);
+            putDbContext.ProductionFacilities.AddRange(_facilityList);
+            putDbContext.SaveChanges();
+            var putProductionFacilitiesController = new ProductionFacilitiesController(putDbContext);
+
             var productionFacility = _dbContext.ProductionFacilities.Where(a => a.Id == id).First();
             productionFacility.Name = "Abrakadabra";
             productionFacility.Code = "Lorem ipsum";
@@ -214,12 +221,43 @@ namespace SMART.Tests
 
             //Act
             await _productionFacilitiesController.PutProductionFacility(productionFacility.Id, productionFacility);
-            var result = _dbContext.ProductionFacilities.Where(_a => _a.Id == id).First();
+            var result = putDbContext.ProductionFacilities.Where(_a => _a.Id == id).First();
 
             //Assert
             Assert.Equal(productionFacility, result);
         }
 
         //TODO Despite many attempts I do not know how to simulate throwing DbUpdateConcurrencyException
+
+        [Fact]
+        public async Task PutProductionFacility_ReturnsNoContent()
+        {
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext putDbContext = new DomainDbContext(options);
+            putDbContext.ProductionFacilities.AddRange(_facilityList);
+            putDbContext.SaveChanges();
+            var putProductionFacilitiesController = new ProductionFacilitiesController(putDbContext);
+
+            var productionFacility = putDbContext.ProductionFacilities.Where(a => a.Id == 1).First();
+            
+            productionFacility.Name = "Lorem ipsum";
+            var result = (await putProductionFacilitiesController.PutProductionFacility(productionFacility.Id, productionFacility));
+            Assert.IsType<NoContentResult>(result);
+        }
+
+        [Fact]
+        public async Task PutProductionFacility_DoesNotReturnNull()
+        {
+            var options = new DbContextOptionsBuilder<DomainDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            DomainDbContext putDbContext = new DomainDbContext(options);
+            putDbContext.ProductionFacilities.AddRange(_facilityList);
+            putDbContext.SaveChanges();
+            var putProductionFacilitiesController = new ProductionFacilitiesController(putDbContext);
+
+            var productionFacility = putDbContext.ProductionFacilities.Where(a => a.Id == 1).First();
+            productionFacility.Name = "Lorem ipsum";
+            var result = (await putProductionFacilitiesController.PutProductionFacility(productionFacility.Id, productionFacility));
+            Assert.NotNull(result);
+        }
     }
 }

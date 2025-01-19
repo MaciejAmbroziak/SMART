@@ -5,6 +5,7 @@ namespace SMART.Domain
 {
     public class DomainDbContext : DbContext
     {
+
         public DbSet<EquipmentContract> EquipmentContracts { get; set; }
         public DbSet<ProcessEquipment> ProcessEquipments { get; set; }
         public DbSet<ProductionFacility> ProductionFacilities { get; set; }
