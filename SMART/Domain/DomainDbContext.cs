@@ -22,6 +22,10 @@ namespace SMART.Domain
             builder.Entity<ProductionFacility>()
                 .HasIndex(a => a.Code)
                 .IsUnique();
+            builder.Entity<EquipmentContract>()
+                .HasMany(a => a.ProcessEquipment)
+                .WithMany(a => a.EquipmentContracts)
+                .UsingEntity("ProcessEquipmentEquipmentContracts");
         }
     }
 }
