@@ -1,11 +1,24 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SMART.Domain;
 using System.Configuration;
 List<ProductionFacility> productionFacilityList = new List<ProductionFacility>();
 List<ProcessEquipment> processEquipmentList = new List<ProcessEquipment>();
 List<EquipmentContract> equipmentContractsList = new List<EquipmentContract>();
+
 Random random = new Random();
-var options = new DbContextOptionsBuilder<DomainDbContext>().UseSqlServer("Server=.\\SQLEXPRESS;Database=SMART;Trusted_Connection=True;TrustServerCertificate=true;").Options;
+var config =  new ConfigurationBuilder()
+            .AddUserSecrets<Program>() // Load user secrets
+            .Build();
+var conStr = new SqlConnectionStringBuilder(
+        config.GetConnectionString("SMARTDatabase")).ToString();
+var options = new DbContextOptionsBuilder<DomainDbContext>()
+    .UseSqlServer(conStr)
+    .Options;
+
+
+
 using (DomainDbContext _context = new DomainDbContext(options))
 {
     for (int i = 0; i < 200; i++)
